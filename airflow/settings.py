@@ -4,8 +4,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import logging.config
 import os
 import sys
+import yaml
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -94,10 +96,23 @@ def policy(task_instance):
     """
     pass
 
+
 def configure_logging():
-    logging.root.handlers = []
-    logging.basicConfig(
-        format=LOG_FORMAT, stream=sys.stdout, level=LOGGING_LEVEL)
+
+    log_config = None
+    for loc in AIRFLOW_HOME, str(os.environ.get('AIRFLOW_HOME')):
+        try:
+            with open(os.path.join(loc, 'logging.yaml'), 'rt') as f:
+                log_config = yaml.load(f.read())
+        except IOError:
+            pass
+
+    if log_config is None:
+        logging.root.handlers = []
+        logging.basicConfig(
+            format=LOG_FORMAT, stream=sys.stdout, level=LOGGING_LEVEL)
+    else:
+        logging.config.dictConfig(log_config)
 
 try:
     from airflow_local_settings import *
